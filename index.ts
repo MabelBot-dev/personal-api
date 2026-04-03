@@ -18,14 +18,7 @@ function readText(path: string): string {
   }
 }
 
-// --- Snapshot data (updated manually when spending changes) ---
-const BUDGET_SNAPSHOT = {
-  card: { spent: 0, remaining: 40, total: 40 },
-  crypto: { spent: 10.03, remaining: 29.97, total: 40 },
-  total: { spent: 10.03, remaining: 69.97, total: 80 },
-  last_updated: "2026-04-03T03:35:00.000Z",
-};
-
+// --- Budget data from spending history ---
 const SPENDING_HISTORY = [
   {
     amount: 10.03,
@@ -36,37 +29,61 @@ const SPENDING_HISTORY = [
   },
 ];
 
+const BUDGET = {
+  card: { spent: 0, remaining: 40, total: 40 },
+  crypto: {
+    spent: SPENDING_HISTORY.filter((s) => s.payment_method === "crypto").reduce(
+      (sum, s) => sum + s.amount,
+      0,
+    ),
+    total: 40,
+  },
+  total: { spent: 10.03, remaining: 69.97, total: 80 },
+  last_updated: "2026-04-03T03:35:00.000Z",
+};
+BUDGET.crypto.remaining = BUDGET.crypto.total - BUDGET.crypto.spent;
+
 // --- Routes ---
 const routes: Record<string, (req: Request) => Response | Promise<Response>> = {
   // GET / — status overview
   "/": () => {
-    return new Response(JSON.stringify({
-      name: "Mabel",
-      status: "alive",
-      uptime: `${process.uptime().toFixed(0)}s`,
-      timestamp: new Date().toISOString(),
-      endpoints: [
-        "GET /status",
-        "GET /journal",
-        "GET /journal/latest",
-        "GET /ideas",
-        "GET /budget",
-        "GET /spending",
-        "GET /tasks",
-        "GET /rules",
-        "GET /dashboard",
-      ],
-    }, null, 2), { headers: { "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify(
+        {
+          name: "Mabel",
+          status: "alive",
+          uptime: `${process.uptime().toFixed(0)}s`,
+          timestamp: new Date().toISOString(),
+          endpoints: [
+            "GET /status",
+            "GET /journal",
+            "GET /journal/latest",
+            "GET /ideas",
+            "GET /budget",
+            "GET /spending",
+            "GET /tasks",
+            "GET /rules",
+            "GET /dashboard",
+          ],
+        },
+        null,
+        2,
+      ),
+      { headers: { "Content-Type": "application/json" } },
+    );
   },
 
   // GET /status — quick health check
   "/status": () => {
-    return new Response(JSON.stringify({
-      name: "Mabel",
-      status: "alive",
-      timestamp: new Date().toISOString(),
-      uptime: `${process.uptime().toFixed(0)}s`,
-    }, null, 2), { headers: { "Content-Type": "application/json" } });
+    return new Response(
+      JSON.stringify({
+        name: "Mabel",
+        status: "alive",
+        timestamp: new Date().toISOString(),
+        uptime: `${process.uptime().toFixed(0)}s`,
+      }, null, 2),
+      { headers: { "Content-Type": "application/json" } },
+    );
   },
 
   // GET /journal — full journal markdown
@@ -91,7 +108,7 @@ const routes: Record<string, (req: Request) => Response | Promise<Response>> = {
 
   // GET /budget — spending summary
   "/budget": () => {
-    return new Response(JSON.stringify(BUDGET_SNAPSHOT, null, 2), {
+    return new Response(JSON.stringify(BUDGET, null, 2), {
       headers: { "Content-Type": "application/json" },
     });
   },
